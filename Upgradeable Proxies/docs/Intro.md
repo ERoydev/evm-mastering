@@ -1,9 +1,24 @@
 
 # Introduction
+### Resources i have used
+#### Good blogpost [here](https://jamesbachini.com/proxy-contracts-tutorial/)
+#### Used for the examples [this](https://rareskills.io/post/openzeppelin-foundry-upgrades)
+
+## Intro: What is a Proxy?
+
+**Proxy = Storage + Dispatcher**
+
+- Holds all the state variables (storage layout)
+- Is the true owner of all data across upgrades
+- Dispatches function calls to the implementation contract using `delegatecall`
+
+**Implementation(Logic Contract) = Behavior**
+
+- Contains only functions and logic.
+- Declares the same variable layout, but doesn't actually store anything - describes where proxy should r/w in storage using delegateCall
+- Can be replaced(upgraded) safely, as long as the storage layout remains compatible
 
 ## 1. Upgradeable Contract has 2 parts:
-### Good blogpost [here](https://jamesbachini.com/proxy-contracts-tutorial/)
-### Used for the examples [this](https://rareskills.io/post/openzeppelin-foundry-upgrades)
 
 - **Proxy itself** - which is the address that the user will call (act as the permanent address that users interact with)
 - **Implementation contract** - which is the second contract that contains all the functionality for the dApp (contains business logic)
@@ -30,7 +45,8 @@ The proxy forwards calls to the implementation contract
 
 
 
-### Types of Proxy patterns:
+### The Common Proxy patterns:
+>Note: For more patterns take a look inside `Patterns-2.md`
 
 ## 1. Transparent Proxy Pattern
 
@@ -74,7 +90,6 @@ Only the logic contract is aware of how to upgrade itself; the proxy is "dumb."
 ### Cons:
 - Slightly more complex to implement safely
 - Requires careful attention to storage layout during upgrades
-
 
 
 # Notes:

@@ -8,3 +8,12 @@ ffi = true
 ast = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+
+# This configuration accomplishes two tasks:
+# - Etherscan configuration: links the etherscan API with the sepolia network for post-deployment contract verification
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"

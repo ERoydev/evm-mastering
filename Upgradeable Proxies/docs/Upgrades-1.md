@@ -26,7 +26,12 @@ The `Upgrades` library from OpenZeppelin Foundry Upgrades provides utilities for
   - Upgrade the implementation behind a proxy.
   - Example:
     ```solidity
-    Upgrades.upgradeTransparentProxy(proxy, "BoxV2.sol");
+    Upgrades.upgradeProxy(
+      proxy, 
+      "BoxV2.sol", 
+      abi.encodeCall(Box.initialize, (12)), 
+      msg.sender
+    );
     ```
 
 - **Admin and Implementation Queries**

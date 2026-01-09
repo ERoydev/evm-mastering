@@ -3,11 +3,12 @@ pragma solidity ^0.8.13;
 
 import {ITreasury} from "../interfaces/ITreasury.sol";
 import {IRewardToken} from "../interfaces/IRewardToken.sol";
-import {BitmaskLib} from "./BitmaskLib.sol";
+import {BitmaskLib} from "../libraries/BitmaskLib.sol";
+import {IEvents} from "../interfaces/IEvents.sol";
 
 // This will be an individual Campaign for every campaign created from the CrowdfundingFactory, should be Upgradeable.
 // Implementation Contract
-contract Campaign {
+contract Campaign is IEvents {
     using BitmaskLib for uint8;
 
     // ===== State Variables =====
@@ -22,7 +23,7 @@ contract Campaign {
 
     /// @dev State of the campaign
     uint8 public state;
-    uint8 public deactivated; // It will be deactivated once all funds are received 
+    bool public deactivated; // It will be deactivated once all funds are received 
 
     uint256 public totalDonated;
     mapping(address => uint256) public donations; // Tracks donor contributions
@@ -43,8 +44,12 @@ contract Campaign {
 
     // ===== Modifiers =====
     modifier onlyActive() {
-        require(state == BitmaskLib.ACTIVE, "Campaign finished");
+        _isActive();
         _;
+    }
+
+    function _isActive() internal view {
+        require(state == BitmaskLib.ACTIVE, "Campaign finished");
     }
 
     // ===== Donation Function =====
@@ -65,25 +70,28 @@ contract Campaign {
     }
 
     /// @notice start of the campaign
-    function activate() {
+    function activate() external view {
         require(block.timestamp < deadline, "Cannot activate campaign deadline has already passed");
     }
 
     /// @notice end of the campaign
-    function deactivate() {
+    function deactivate() external {
         require(block.timestamp >= deadline, "Deadline of the campaign is not reached yet.");
 
+        deactivated = true;
+
+        emit CampaignDeactivated(address(0), address(1), "TODO");
     }
 
-    function mark_as_failed() {
+    function markAsFailed() external {
 
     }
 
-    function enable_refunds() {
+    function enableRefunds() external {
 
     }
 
-    function mark_funds_as_released() {
+    function markFundsAsReleased() external {
 
     }
 }

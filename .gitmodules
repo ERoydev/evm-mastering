@@ -1,0 +1,6 @@
+[submodule "defi-crowdfunding/lib/openzeppelin-contracts"]
+	path = defi-crowdfunding/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "defi-crowdfunding/lib/openzeppelin-contracts-upgradeable"]
+	path = defi-crowdfunding/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable

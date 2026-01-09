@@ -5,12 +5,17 @@ import {ITreasury} from "../interfaces/ITreasury.sol";
 import {IRewardToken} from "../interfaces/IRewardToken.sol";
 import {BitmaskLib} from "../libraries/BitmaskLib.sol";
 import {IEvents} from "../interfaces/IEvents.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+
 
 // This will be an individual Campaign for every campaign created from the CrowdfundingFactory, should be Upgradeable.
 // Implementation Contract
-contract Campaign is IEvents {
-    using BitmaskLib for uint8;
+contract Campaign is Initializable, AccessControlUpgradeable, IEvents {
+    bytes32 public constant FACTORY_ADMIN = keccak256("FACTORY_ADMIN");
 
+    using BitmaskLib for uint8;
+    
     // ===== State Variables =====
     /// @dev The creator of the campaign
     address public creator;
@@ -35,6 +40,10 @@ contract Campaign is IEvents {
         address _treasury,
         address _rewardToken
     ) {
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _creator);
+        _grantRole(FACTORY_ADMIN, msg.sender);
+
         creator = _creator;
         fundingGoal = _fundingGoal;
         deadline = block.timestamp + _duration;

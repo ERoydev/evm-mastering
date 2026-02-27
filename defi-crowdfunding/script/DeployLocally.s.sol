@@ -7,11 +7,11 @@ import {console} from "forge-std/console.sol";
 
 contract DeployLocally is Script {
     function run() public {
-        vm.startBroadcast();
+        // vm.startBroadcast();
 
-        CrowdfundingFactory factory = new CrowdfundingFactory();
-        console.log("Deployed CrowdfundingFactory at:", address(factory));
+        // CrowdfundingFactory factory = new CrowdfundingFactory();
+        // console.log("Deployed CrowdfundingFactory at:", address(factory));
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
     }
 }

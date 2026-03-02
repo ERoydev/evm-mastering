@@ -178,5 +178,92 @@ contract FactoryTest is Test {
         vm.expectRevert("Campaign has ended");
         Campaign(campaignAddr).donate{value: 1 ether}();
     }
+
+    function testClaimRefundAfterFailedCampaign() public {
+        uint256 fundingGoal = 5 ether;
+        uint256 duration = 7 days;
+
+        address[] memory signers = new address[](2);
+        signers[0] = creator;
+        signers[1] = address(0xABCD);
+
+        rewardToken = new RewardToken(address(this));
+
+        crowdfundingFactory.createCampaign(
+            creator, fundingGoal, duration, signers, 2, address(rewardToken), "Refund Test"
+        );
+
+        (address campaignAddr, address treasuryAddr, , ) = crowdfundingFactory.campaigns(0);
+        Campaign campaign = Campaign(campaignAddr);
+        rewardToken.transferOwnership(campaignAddr);
+
+        // Donate less than goal
+        vm.prank(donor);
+        campaign.donate{value: 1 ether}();
+
+        uint256 donorBalanceBefore = donor.balance;
+
+        // Warp past deadline, finalize, claim refund
+        vm.warp(block.timestamp + duration + 1);
+        campaign.finalize();
+
+        vm.prank(donor);
+        campaign.claimRefund();
+
+        // Verify: donor got refund, donation cleared, treasury empty
+        assertEq(donor.balance, donorBalanceBefore + 1 ether);
+        assertEq(campaign.donations(donor), 0);
+        assertEq(address(treasuryAddr).balance, 0);
+    }
+
+    function testTreasuryMultisigFlow() public {
+        uint256 fundingGoal = 1 ether;
+        uint256 duration = 7 days;
+
+        address signer1 = creator;
+        address signer2 = address(0xABCD);
+        address recipient = address(0xBEEF);
+
+        address[] memory signers = new address[](2);
+        signers[0] = signer1;
+        signers[1] = signer2;
+
+        rewardToken = new RewardToken(address(this));
+
+        crowdfundingFactory.createCampaign(
+            creator, fundingGoal, duration, signers, 2, address(rewardToken), "Multisig Test"
+        );
+
+        (address campaignAddr, address treasuryAddr, , ) = crowdfundingFactory.campaigns(0);
+        Treasury treasury = Treasury(payable(treasuryAddr));
+        rewardToken.transferOwnership(campaignAddr);
+
+        // Donate to meet goal
+        vm.prank(donor);
+        Campaign(campaignAddr).donate{value: 2 ether}();
+
+        // Verify treasury has funds
+        assertEq(address(treasury).balance, 2 ether);
+
+        // Signer1 proposes a transaction to send 1 ETH to recipient
+        vm.prank(signer1);
+        uint256 txId = treasury.proposeTransaction(recipient, 1 ether, "");
+
+        // Signer1 approves
+        vm.prank(signer1);
+        treasury.approveTransaction(txId);
+
+        // Signer2 approves (meets 2-of-2 threshold)
+        vm.prank(signer2);
+        treasury.approveTransaction(txId);
+
+        // Execute transaction
+        vm.prank(signer1);
+        treasury.executeTransaction(txId);
+
+        // Verify: recipient got 1 ETH, treasury has 1 ETH left
+        assertEq(recipient.balance, 1 ether);
+        assertEq(address(treasury).balance, 1 ether);
+    }
 }
 

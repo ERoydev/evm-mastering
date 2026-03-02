@@ -168,6 +168,15 @@ contract Treasury is ITreasury {
         return (txn.to, txn.value, txn.data, txn.executed, txn.approvalCount);
     }
 
+    function refund(address to, uint256 amount) external {
+        // Allow the campaign to pull refunds back without signer approval. Special cae since refunds are fo railed campaigns
+        require(msg.sender == campaign, "Only campaign can refund");
+        require(amount <= address(this).balance, "Insufficient balance");
+        
+        (bool success,) = to.call{value: amount}("");
+        require(success, "Refund failed");
+    }
+
     /// @notice Allow receiving ETH directly (for edge cases)
     receive() external payable {
         emit Deposited(msg.sender, msg.value);

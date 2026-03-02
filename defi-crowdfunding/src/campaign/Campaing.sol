@@ -53,6 +53,7 @@ contract Campaign is Initializable, AccessControlUpgradeable, ReentrancyGuard, I
         treasury = _treasury;
         rewardToken = _rewardToken;
         name = _name;
+        state = BitmaskLib.ACTIVE;
     }
 
     // ===== Modifiers =====
@@ -84,7 +85,7 @@ contract Campaign is Initializable, AccessControlUpgradeable, ReentrancyGuard, I
     }
 
     /// @notice end of the campaign
-    function deactivate() external {
+    function deactivate() public {
         require(block.timestamp >= deadline, "Deadline of the campaign is not reached yet.");
 
         deactivated = true;
@@ -92,15 +93,34 @@ contract Campaign is Initializable, AccessControlUpgradeable, ReentrancyGuard, I
         emit CampaignDeactivated(address(this), creator, name);
     }
 
-    function markAsFailed() external {
-
+    function finalize() external {
+        require(block.timestamp >= deadline, "Campaign still active");
+        require(state.hasState(BitmaskLib.ACTIVE), "Already finalized");
+        
+        // Clear ACTIVE state
+        state = state.clearState(BitmaskLib.ACTIVE);
+        
+        if (totalDonated >= fundingGoal) {
+            state = state.setState(BitmaskLib.SUCCESSFUL);
+        } else {
+            // Failure, enable refunds
+            state = state.setState(BitmaskLib.FAILED);
+            state = state.setState(BitmaskLib.REFUNDS_ENABLED);
+        }
+        
+        deactivate();
     }
 
-    function enableRefunds() external {
-
-    }
-
-    function markFundsAsReleased() external {
-
+    function claimRefund() external nonReentrant {
+        require(state.hasState(BitmaskLib.REFUNDS_ENABLED), "Refunds not enabled");
+        
+        uint256 amount = donations[msg.sender];
+        require(amount > 0, "No donation to refund");
+        
+        // Clear donation before external call (reentrancy protection)
+        donations[msg.sender] = 0;
+        
+        // Request refund from treasury
+        ITreasury(treasury).refund(msg.sender, amount);
     }
 }

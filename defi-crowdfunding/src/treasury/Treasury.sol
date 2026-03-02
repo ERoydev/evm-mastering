@@ -40,18 +40,31 @@ contract Treasury is ITreasury {
     event TransactionExecuted(uint256 indexed txId, address indexed executor);
 
     // ===== Modifiers =====
-    modifier onlySigner() {
+    function _notExecuted(uint256 txId) internal view {
+        require(!transactions[txId].executed, "Transaction already executed");
+    }
+
+    function _onlySigner() internal view {
         require(isSigner[msg.sender], "Not a signer");
+    }
+
+    function _txExists(uint256 txId) internal view {
+        require(txId < transactions.length, "Transaction does not exist");
+    }
+
+    modifier onlySigner() {
+        _onlySigner();
         _;
     }
 
     modifier txExists(uint256 txId) {
-        require(txId < transactions.length, "Transaction does not exist");
+        _txExists(txId);
         _;
     }
 
+
     modifier notExecuted(uint256 txId) {
-        require(!transactions[txId].executed, "Transaction already executed");
+        _notExecuted(txId);
         _;
     }
 

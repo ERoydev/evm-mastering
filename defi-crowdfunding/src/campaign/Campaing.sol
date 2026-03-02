@@ -35,6 +35,10 @@ contract Campaign is Initializable, AccessControlUpgradeable, ReentrancyGuard, I
     uint256 public totalDonated;
     mapping(address => uint256) public donations; // Tracks donor contributions
 
+    function version() external pure returns (uint256) {
+        return 1;
+    }
+
     function initialize(    
         address _creator,
         uint256 _fundingGoal,

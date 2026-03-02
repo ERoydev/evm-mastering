@@ -4,8 +4,11 @@ pragma solidity ^0.8.13;
 import {Test} from "forge-std/Test.sol";
 import {CrowdfundingFactory} from "../src/factory/CrowdfundingFactory.sol";
 import {Campaign} from "../src/campaign/Campaing.sol";
+import {CampaignV2} from "../src/campaign/CampaignV2.sol";
 import {RewardToken} from "../src/token/RewardToken.sol";
 import {Treasury} from "../src/treasury/Treasury.sol";
+import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract FactoryTest is Test {
     CrowdfundingFactory public crowdfundingFactory;
@@ -264,6 +267,42 @@ contract FactoryTest is Test {
         // Verify: recipient got 1 ETH, treasury has 1 ETH left
         assertEq(recipient.balance, 1 ether);
         assertEq(address(treasury).balance, 1 ether);
+    }
+
+    function testUpgradeChangesVersion() public {
+        // Deploy V1 and V2 implementations
+        Campaign campaignV1Impl = new Campaign();
+        CampaignV2 campaignV2Impl = new CampaignV2();
+        
+        // Deploy proxy with V1. Pass address(this) as initialOwner - 
+        // TransparentUpgradeableProxy will create a ProxyAdmin owned by us
+        bytes memory initData = abi.encodeWithSelector(
+            Campaign.initialize.selector,
+            creator, 1 ether, 7 days, address(1), address(2), "Test"
+        );
+        // this deploys a proxy contract pointing to V1 as the admin (test contract owns ProxyAdmin)
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(campaignV1Impl),
+            address(this),  // We will own the auto-created ProxyAdmin
+            initData
+        );
+        
+        // Computes the address of the ProxyAdmin contract created by the proxy, then creates a ProxyAdmin instance for upgrade calls.
+        address proxyAdminAddr = computeCreateAddress(address(proxy), 1);
+        ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdminAddr);
+        
+        // Verify V1
+        assertEq(Campaign(address(proxy)).version(), 1);
+        
+        // Upgrade to V2 (we own the ProxyAdmin), now upgrade the proxy to point to V2 implementation.
+        proxyAdmin.upgradeAndCall(
+            ITransparentUpgradeableProxy(address(proxy)),
+            address(campaignV2Impl),
+            ""
+        );   
+        
+        // Verify V2
+        assertEq(CampaignV2(address(proxy)).version(), 2);
     }
 }
 

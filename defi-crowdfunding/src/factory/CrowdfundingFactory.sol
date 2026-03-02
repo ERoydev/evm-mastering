@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {Campaign} from "../campaign/Campaing.sol";
 import {Treasury} from "../treasury/Treasury.sol";
 
@@ -57,6 +57,19 @@ contract CrowdfundingFactory {
         // Initialize the treasury for that campaign
         treasury.initialize(signers, threshold, proxy);
 
-        campaigns.push(CampaignInfo(proxy, address(treasury), creator, name));
+        campaigns.push(CampaignInfo(
+            {campaignAddress: proxy, treasuryAddress: address(treasury),owner: creator, name: name}
+        ));
+    }
+
+    /// @notice Upgrade a campaign to a new implementation
+    /// @param campaignIndex Index of the campaign to upgrade
+    /// @param newImplementation Address of the new implementation contract
+    function upgradeCampaign(uint256 campaignIndex, address newImplementation) external {
+        require(msg.sender == admin, "Only admin");
+        require(campaignIndex < campaigns.length, "Invalid campaign index");
+        
+        CampaignInfo storage info = campaigns[campaignIndex];
+        ITransparentUpgradeableProxy(info.campaignAddress).upgradeToAndCall(newImplementation, "");
     }
 }

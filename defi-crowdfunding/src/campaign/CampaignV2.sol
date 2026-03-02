@@ -2,16 +2,119 @@
 pragma solidity ^0.8.13;
 
 
+import {ITreasury} from "../interfaces/ITreasury.sol";
+import {IRewardToken} from "../interfaces/IRewardToken.sol";
+import {BitmaskLib} from "../libraries/BitmaskLib.sol";
+import {IEvents} from "../interfaces/IEvents.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+
+
+
 // This will be an individual Campaign for every campaign created from the CrowdfundingFactory, should be Upgradeable.
 // Implementation Contract
-contract CampaignV2 {
-    uint256 public number;
+contract CampaignV2 is Initializable, AccessControlUpgradeable, ReentrancyGuard, IEvents {
+    bytes32 public constant FACTORY_ADMIN = keccak256("FACTORY_ADMIN");
 
-    function setNumber(uint256 newNumber) public {
-        number = newNumber;
+    using BitmaskLib for uint8;
+    
+    // ===== EXISTING STORAGE - DO NOT MODIFY ORDER =====
+    address public creator;
+    uint256 public fundingGoal; 
+    uint256 public deadline;
+    address public treasury;
+    address public rewardToken;
+    string public name;
+    uint8 public state;
+    bool public deactivated;
+    uint256 public totalDonated;
+    mapping(address => uint256) public donations;
+
+    // ===== NEW STORAGE FOR V2 - APPEND ONLY =====
+    uint256 public minDonation;
+
+    function version() external pure returns (uint256) {
+        return 2;
     }
 
-    function increment() public {
-        number++;
+    function initialize(    
+        address _creator,
+        uint256 _fundingGoal,
+        uint256 _duration,
+        address _treasury,
+        address _rewardToken,
+        string memory _name
+    ) public initializer {
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _creator);
+        _grantRole(FACTORY_ADMIN, msg.sender);
+
+        creator = _creator;
+        fundingGoal = _fundingGoal;
+        deadline = block.timestamp + _duration;
+        treasury = _treasury;
+        rewardToken = _rewardToken;
+        name = _name;
+        state = BitmaskLib.ACTIVE;
+    }
+
+    // ===== NEW V2 FUNCTION =====
+    function setMinDonation(uint256 _minDonation) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin");
+        minDonation = _minDonation;
+    }
+
+    function _onlyActive() internal view {
+        require(state == BitmaskLib.ACTIVE, "Campaign finished");
+    }
+
+    modifier onlyActive() {
+        _onlyActive();
+        _;
+    }
+
+    function donate() external payable {
+        require(block.timestamp < deadline, "Campaign has ended");
+        require(msg.value > 0, "Donation must be greater than 0");
+        require(msg.value >= minDonation, "Donation below minimum");
+
+        donations[msg.sender] += msg.value;
+        totalDonated += msg.value;
+
+        ITreasury(treasury).deposit{value: msg.value}(); 
+        IRewardToken(rewardToken).mint(msg.sender, msg.value * 20);
+    }
+
+    function deactivate() public {
+        require(block.timestamp >= deadline, "Deadline of the campaign is not reached yet.");
+        deactivated = true;
+        emit CampaignDeactivated(address(this), creator, name);
+    }
+
+    function finalize() external {
+        require(block.timestamp >= deadline, "Campaign still active");
+        require(state.hasState(BitmaskLib.ACTIVE), "Already finalized");
+        
+        state = state.clearState(BitmaskLib.ACTIVE);
+        
+        if (totalDonated >= fundingGoal) {
+            state = state.setState(BitmaskLib.SUCCESSFUL);
+        } else {
+            state = state.setState(BitmaskLib.FAILED);
+            state = state.setState(BitmaskLib.REFUNDS_ENABLED);
+        }
+        
+        deactivate();
+    }
+
+    function claimRefund() external {
+        require(state.hasState(BitmaskLib.REFUNDS_ENABLED), "Refunds not enabled");
+        
+        uint256 amount = donations[msg.sender];
+        require(amount > 0, "No donation to refund");
+        
+        donations[msg.sender] = 0;
+        ITreasury(treasury).refund(msg.sender, amount);
     }
 }

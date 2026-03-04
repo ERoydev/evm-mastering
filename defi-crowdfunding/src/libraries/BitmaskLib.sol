@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 /// @dev This library is used to represent Campaign State, using bitwise encoding instead of enums
 library BitmaskLib {

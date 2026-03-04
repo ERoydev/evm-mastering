@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 import {ITreasury} from "../interfaces/ITreasury.sol";
 import {IRewardToken} from "../interfaces/IRewardToken.sol";

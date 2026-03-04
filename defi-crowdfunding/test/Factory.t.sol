@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {CrowdfundingFactory} from "../src/factory/CrowdfundingFactory.sol";
@@ -30,10 +30,9 @@ contract FactoryTest is Test {
     }
 
     function testCreateCampaign() public {
-        address creator = address(0x1234);
         uint256 fundingGoal = 1 ether;
         uint256 duration = 7 days;
-        address rewardToken = address(0xCAFE);
+        address rewardToken1 = address(0xCAFE);
         string memory name = "Test Campaign";
 
         // Setup multisig signers and threshold
@@ -44,7 +43,7 @@ contract FactoryTest is Test {
         uint256 threshold = 2;
 
         // This should create campaign with a treasury for it
-        crowdfundingFactory.createCampaign(creator, fundingGoal, duration, signers, threshold, rewardToken, name);
+        crowdfundingFactory.createCampaign(creator, fundingGoal, duration, signers, threshold, rewardToken1, name);
 
         (address campaignAddr, address treasuryAddr, address owner, string memory storedName) = crowdfundingFactory.campaigns(0);
         assertEq(owner, creator, "Owner mismatch");
@@ -288,7 +287,7 @@ contract FactoryTest is Test {
         );
         
         // Computes the address of the ProxyAdmin contract created by the proxy, then creates a ProxyAdmin instance for upgrade calls.
-        address proxyAdminAddr = computeCreateAddress(address(proxy), 1);
+        address proxyAdminAddr = vm.computeCreateAddress(address(proxy), 1);
         ProxyAdmin proxyAdmin = ProxyAdmin(proxyAdminAddr);
         
         // Verify V1

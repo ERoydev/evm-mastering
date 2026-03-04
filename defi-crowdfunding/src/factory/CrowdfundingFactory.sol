@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
-
+pragma solidity ^0.8.25;
 import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {Campaign} from "../campaign/Campaing.sol";
 import {Treasury} from "../treasury/Treasury.sol";

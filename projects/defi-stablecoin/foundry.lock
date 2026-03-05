@@ -1,0 +1,14 @@
+{
+  "../../defi-crowdfunding/lib/openzeppelin-contracts": {
+    "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+  },
+  "../../defi-crowdfunding/lib/openzeppelin-contracts-upgradeable": {
+    "rev": "aa677e9d28ed78fc427ec47ba2baef2030c58e7c"
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.6.1",
+      "rev": "5fd1781b1454fd1ef8e722282f86f9293cacf256"
+    }
+  }
+}
